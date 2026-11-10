@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoneyOI - Kelola keuangan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0f19;
+        }
+        .bg-pattern {
+            background-image: radial-gradient(circle at 30% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                              radial-gradient(circle at 70% 80%, rgba(20, 184, 166, 0.06) 0%, transparent 45%);
+        }
+        .glass {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen bg-pattern overflow-x-hidden flex flex-col">
+
+    <div id="loading-cloud" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0b0f19]/90 backdrop-blur-md hidden">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-500 mb-4"></div>
+        <p class="text-xs text-slate-400 font-light" id="loading-text">Menghubungkan...</p>
+    </div>
+
+    <div id="auth-screen" class="fixed inset-0 z-40 flex flex-col items-center justify-center bg-[#0b0f19] px-4">
+        <div class="absolute w-96 h-96 bg-violet-600/10 rounded-full blur-[120px] top-1/4 left-1/4 animate-pulse"></div>
+        
+        <div class="w-full max-w-sm glass rounded-2xl p-8 relative z-10 space-y-6 shadow-xl">
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 mb-4 shadow-xl shadow-emerald-900/20">
+                    <i class="bi bi-coin text-3xl text-white"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white tracking-tight">Money<span class="text-emerald-400">OI</span></h1>
+            
+                <h1 class="text-2xl font-bold tracking-tight text-white"> Kelola Keuangan Anda</h1>
+                <p class="text-xs text-slate-400 mt-1">Pilih metode masuk untuk mengelola keuangan Anda.</p>
+            </div>
+
+            <div class="space-y-3 relative z-50">
+                <button onclick="loginGoogle()" class="w-full relative z-50 py-3.5 bg-slate-900 border border-slate-800 hover:bg-slate-800/60 hover:border-violet-500/50 text-slate-200 font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2.5 shadow-md">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24">
+                        <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.46 0 4.105 1.025 5.047 1.926l3.227-3.11C18.436 2.014 15.617 1 12.24 1A10.97 10.97 0 0 0 1.25 12a10.97 10.97 0 0 0 10.99 11c5.73 0 9.541-3.996 9.541-9.71 0-.653-.07-1.151-.151-1.425H12.24Z"/>
+                    </svg>
+                    Masuk dengan Akun Google
+                </button>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-800/60"></div>
+                    <span class="flex-shrink mx-3 text-[10px] text-slate-600 uppercase tracking-wider font-semibold">Atau</span>
+                    <div class="flex-grow border-t border-slate-800/60"></div>
+                </div>
+
+                <button onclick="loginAnonim()" class="w-full relative z-50 py-3.5 bg-slate-900 border border-slate-800 hover:bg-slate-800/60 hover:border-violet-500/50 text-slate-200 font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-md">
+                    <i class="bi bi-lightning-charge-fill text-amber-400"></i>
+                    Masuk Instan (Tanpa Daftar)
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="main-app" class="hidden min-h-screen flex flex-col w-full">
+        
+        <header class="w-full glass border-b border-slate-800/60 sticky top-0 z-40 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+                
+                <div class="flex items-center gap-2.5 shrink-0">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center">
+                        <i class="bi bi-coin text-white text-sm"></i>
+                    </div>
+                    <span class="font-bold text-base tracking-wider text-white">Money<span class="text-emerald-400">OI</span></span>
+                </div>
+
+                <nav class="flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs transition-all text-violet-400 bg-violet-600/10">
+                        <i class="bi-graph-up-arrow"></i> <span class="hidden md:inline">Dasbor</span>
+                    </button>
+                    <button onclick="switchTab('dompet')" id="nav-dompet" class="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs transition-all text-slate-400 hover:text-slate-200">
+                        <i class="bi bi-wallet2"></i> <span class="hidden md:inline">Dompet</span>
+                    </button>
+                    <button onclick="switchTab('transaksi')" id="nav-transaksi" class="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs transition-all text-slate-400 hover:text-slate-200">
+                        <i class="bi bi-arrow-left-right"></i> <span class="hidden md:inline">Transaksi</span>
+                    </button>
+                </nav>
+
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="text-right">
+                        <p id="user-display-info" class="text-xs font-semibold text-slate-200">Loading User...</p>
+                        <div class="flex items-center justify-end gap-2 mt-0.5">
+                            <button id="btn-upgrade-anon" onclick="openUpgradeModal()" class="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded font-medium hover:bg-amber-500/20 hidden">
+                                <i class="bi bi-cloud-arrow-up-fill"></i> Simpan Akun
+                            </button>
+                            <button onclick="logoutUser()" class="text-[10px] text-rose-400 font-medium hover:underline">Keluar</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </header>
+
+        <main class="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8">
+            <section id="tab-dashboard" class="space-y-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Ringkasan Finansial Anda</h2>
+                    <p class="text-sm text-slate-400 font-light">Data di bawah tersimpan aman berdasarkan identitas login Anda.</p>
+                </div>
+
+                <div class="w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 p-6 shadow-xl shadow-emerald-950/20">
+                    <p class="text-xs font-medium text-emerald-100/80 uppercase tracking-wider mb-1">Total Saldo Gabungan</p>
+                    <h3 id="dash-total-saldo" class="text-3xl font-extrabold tracking-tight text-white mb-6">Rp 0</h3>
+                    <div class="flex items-center gap-6 text-xs text-indigo-100">
+                        <div>
+                            <span class="block text-indigo-10/60 mb-0.5">Pemasukan (Bulan ini)</span>
+                            <span id="dash-total-masuk" class="font-semibold text-sm text-emerald-900">+ Rp 0</span>
+                        </div>
+                        <div class="border-l border-indigo-100/50 h-7"></div>
+                        <div>
+                            <span class="block text-indigo-10/60 mb-0.5">Pengeluaran (Bulan ini)</span>
+                            <span id="dash-total-keluar" class="font-semibold text-sm text-rose-900">- Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-2 glass rounded-2xl p-6 space-y-4">
+                        <h4 class="text-base font-semibold text-white mb-2"><i class="bi bi-plus-circle text-violet-400 mr-1.5"></i> Catat Transaksi</h4>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1.5">Jenis Transaksi</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="setTxType('pemasukan')" id="btn-tx-masuk" class="py-2.5 rounded-xl text-xs font-semibold border transition-all bg-emerald-500/10 border-emerald-500/30 text-emerald-400">Pemasukan</button>
+                                <button onclick="setTxType('pengeluaran')" id="btn-tx-keluar" class="py-2.5 rounded-xl text-xs font-semibold border transition-all bg-transparent border-slate-800 text-slate-400">Pengeluaran</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1.5">Pilih Dompet Sumber</label>
+                            <select id="tx-dompet" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-violet-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1.5">Nominal (Rp)</label>
+                            <input type="number" id="tx-nominal" placeholder="Contoh: 50000" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-violet-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1.5">Keterangan / Deskripsi</label>
+                            <input type="text" id="tx-keterangan" placeholder="cth: Gaji, Makan" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-violet-500">
+                        </div>
+                        <button onclick="simpanTransaksi()" class="w-full py-2.5 mt-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold text-xs rounded-xl transition-all">Simpan Transaksi</button>
+                    </div>
+
+                    <div class="lg:col-span-3 glass rounded-2xl p-6 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4"><h4 class="text-base font-semibold text-white"><i class="bi bi-graph-up text-fuchsia-400 mr-1.5"></i> Tren Aktivitas</h4></div>
+                        <div class="w-full h-64 flex items-center justify-center"><canvas id="financialChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-dompet" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-white">Alokasi Dompet</h2>
+                    <button onclick="toggleDompetModal(true)" class="px-4 py-2 bg-slate-800 text-slate-200 border border-slate-700/60 text-xs font-semibold rounded-xl flex items-center gap-1.5"><i class="bi bi-plus-lg"></i> Tambah Dompet</button>
+                </div>
+                <div id="daftar-dompet" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </section>
+
+            <section id="tab-transaksi" class="hidden space-y-6">
+                <h2 class="text-2xl font-bold text-white">Riwayat Aktivitas</h2>
+                <div class="w-full glass rounded-2xl p-6 h-64 mb-4"><canvas id="transactionPageChart"></canvas></div>
+                <div class="glass rounded-2xl overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 uppercase"><th class="p-4">Tanggal</th><th class="p-4">Keterangan</th><th class="p-4">Dompet</th><th class="p-4 text-right">Nominal</th></tr>
+                        </thead>
+                        <tbody id="tabel-transaksi-body" class="text-xs divide-y divide-slate-800/60"></tbody>
+                    </table>
+                    <div id="transaksi-empty-state" class="hidden p-8 text-center text-slate-500 text-xs">Belum ada catatan transaksi.</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="dompet-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="glass w-full max-w-sm rounded-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center"><h4 class="text-sm font-bold text-white">Tambah Akun Dompet</h4><button onclick="toggleDompetModal(false)" class="text-slate-400 text-sm"><i class="bi bi-x-lg"></i></button></div>
+            <div><label class="block text-xs text-slate-400 mb-1">Nama Dompet</label><input type="text" id="modal-nama-dompet" placeholder="Cash, Bank" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+            <div><label class="block text-xs text-slate-400 mb-1">Saldo Awal</label><input type="number" id="modal-saldo-dompet" placeholder="0" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+            <button onclick="simpanDompetBaru()" class="w-full py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold text-xs rounded-xl">Simpan</button>
+        </div>
+    </div>
+
+    <div id="upgrade-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="glass w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl text-center">
+            <div class="flex justify-between items-center text-left">
+                <h4 class="text-sm font-bold text-white">Simpan Data Permanen</h4>
+                <button onclick="closeUpgradeModal()" class="text-slate-400 text-sm"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <p class="text-[11px] text-slate-400 text-left">Amankan data transaksi di perangkat ini dengan menghubungkannya ke Akun Google Anda agar bisa diakses kembali dari perangkat manapun tanpa takut hilang.</p>
+            
+            <button onclick="upgradePakeGoogle()" class="w-full py-3.5 bg-slate-900 border border-slate-800 hover:bg-slate-800/60 hover:border-violet-500/50 text-slate-200 font-semibold text-xs rounded-xl flex items-center justify-center gap-2.5 shadow-md transition-all">
+                <svg class="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.46 0 4.105 1.025 5.047 1.926l3.227-3.11C18.436 2.014 15.617 1 12.24 1A10.97 10.97 0 0 0 1.25 12a10.97 10.97 0 0 0 10.99 11c5.73 0 9.541-3.996 9.541-9.71 0-.653-.07-1.151-.151-1.425H12.24Z"/>
+                </svg>
+                Amankan via Akun Google
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, runTransaction, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, limit, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, linkWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        // !!! SILAKAN SESUAIKAN CONFIG DENGAN PROJECT FIREBASE ANDA !!!
+        const firebaseConfig = {
+        apiKey: "AIzaSyDRIQjVGLUb7DBAgwgkOpLndDbAbFEo4iU",
+        authDomain: "web-pengelola-keuangan.firebaseapp.com",
+        projectId: "web-pengelola-keuangan",
+        storageBucket: "web-pengelola-keuangan.firebasestorage.app",
+        messagingSenderId: "718555262791",
+        appId: "1:718555262791:web:35fd706dc00121a73ca662",
+        measurementId: "G-6LLW36FLC4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        let currentUserUid = null;
+        let unsubscribeSnapshot = null;
+
+        window.dataDompet = [];
+        window.dataTransaksi = [];
+        window.currentTxType = 'pemasukan';
+        window.coreChart = null;
+        window.transPageChart = null;
+        // Monitor Status Autentikasi Global
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserUid = user.uid;
+                if (user.isAnonymous) {
+                    document.getElementById('user-display-info').innerText = "Mode Guest (Instan)";
+                    document.getElementById('btn-upgrade-anon').classList.remove('hidden');
+                } else {
+                    document.getElementById('user-display-info').innerText = user.displayName || user.email || "User Terverifikasi";
+                    document.getElementById('btn-upgrade-anon').classList.add('hidden');
+                }
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                listenToUserCloudData(user.uid);
+            } else {
+                currentUserUid = null;
+                if (unsubscribeSnapshot) unsubscribeSnapshot();
+                document.getElementById('main-app').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+            }
+        });
+        // 1. Login menggunakan Google POPUP
+        window.loginGoogle = async function() {
+            showLoading("Membuka autentikasi Google...");
+            try {
+                await signInWithPopup(auth, googleProvider);
+            } catch (error) {
+                alert("Gagal masuk dengan Google: " + error.message);
+            } finally { hideLoading(); }
+        }
+        // 2. Login Anonim / Guest
+        window.loginAnonim = async function() {
+            showLoading("Menyiapkan ruang penyimpanan anonim...");
+            try { 
+                await signInAnonymously(auth); 
+            } catch (error) { 
+                alert("Gagal masuk instan: " + error.message); 
+            } finally { 
+                hideLoading(); 
+            }
+        }
+        // 3. Upgrade Akun Anonim -> Mengaitkan ke Google
+        window.upgradePakeGoogle = async function() {
+            showLoading("Menghubungkan ke Akun Google Anda...");
+            try {
+                await linkWithPopup(auth.currentUser, googleProvider);
+                alert("Sukses! Akun Anda kini terikat permanen dengan Google.");
+                closeUpgradeModal();
+            } catch (error) {
+                alert("Gagal menghubungkan Google: " + error.message);
+            } finally { hideLoading(); }
+        }
+
+        function listenToUserCloudData(uid) {
+            // 1. Listener untuk Dompet (Dokumen Utama)
+            const userDocRef = doc(db, "users_fintech_hybrid", uid);
+            onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    window.dataDompet = docSnap.data().dompet || [];
+                    refreshUI();
+                }
+            });
+            // 2. Listener untuk Transaksi (Sub-koleksi)
+            const txRef = collection(db, "users_fintech_hybrid", uid, "transaksi");
+            const q = query(txRef, orderBy("timestamp", "desc"), limit(20));
+    
+            onSnapshot(q, (snapshot) => {
+                window.dataTransaksi = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderTransaksiTable();
+                initCharts();
+                hitungKalkulasiGlobal();// Update grafik saat ada data baru
+            });
+        }
+
+        async function uploadStateKeCloud() {
+            if(!currentUserUid) return;
+            try {
+                const userRef = doc(db, "users_fintech_hybrid", currentUserUid);
+                await setDoc(userRef, {
+                    dompet: window.dataDompet,
+                }, { merge: true });
+            } catch (e) {
+                console.error("Gagal update dompet:", e);
+                alert("Gagal menyimpan data dompet.");
+            }
+        }
+        // Pengatur Navigasi Form & UI
+        window.logoutUser = function() { if(confirm("Keluar dari aplikasi?")) signOut(auth); }
+        window.openUpgradeModal = function() { document.getElementById('upgrade-modal').style.display = 'flex'; }
+        window.closeUpgradeModal = function() { document.getElementById('upgrade-modal').style.display = 'none'; }
+
+        // [LOGIK ENGINE CORE: REFRESH DATA & GRAFIK]
+        function refreshUI() { updateDompetDropdown(); renderDompetCards(); renderTransaksiTable(); hitungKalkulasiGlobal(); initCharts(); }
+        window.switchTab = function(targetTab) {
+            const tabs = ['dashboard', 'dompet', 'transaksi'];
+            tabs.forEach(tab => {
+                const element = document.getElementById(`tab-${tab}`); const navBtn = document.getElementById(`nav-${tab}`);
+                let iconHTML = tab === 'dashboard' ? '<i class="bi bi-grid-1x2-fill"></i>' : (tab === 'dompet' ? '<i class="bi bi-wallet2"></i>' : '<i class="bi bi-arrow-left-right"></i>');
+                if(tab === targetTab) {
+                    element.classList.remove('hidden'); navBtn.className = "flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs transition-all text-violet-400 bg-violet-600/10";
+                    navBtn.innerHTML = `${iconHTML} <span class="hidden md:inline">${tab === 'dashboard' ? 'Dasbor' : tab.charAt(0).toUpperCase() + tab.slice(1)}</span>`;
+                } else {
+                    element.classList.add('hidden'); navBtn.className = "flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs transition-all text-slate-400 hover:text-slate-200";
+                    navBtn.innerHTML = `${iconHTML} <span class="hidden md:inline">${tab === 'dashboard' ? 'Dasbor' : tab.charAt(0).toUpperCase() + tab.slice(1)}</span>`;
+                }
+            });
+            setTimeout(initCharts, 50);
+        }
+        function formatRupiah(angka) { return 'Rp ' + Number(angka).toLocaleString('id-ID'); }
+        function hitungKalkulasiGlobal() {
+            let totalSaldo = window.dataDompet.reduce((sum, item) => sum + item.saldo, 0);
+            let totalMasuk = window.dataTransaksi.filter(t => t.type === 'pemasukan').reduce((sum, item) => sum + item.nominal, 0);
+            let totalKeluar = window.dataTransaksi.filter(t => t.type === 'pengeluaran').reduce((sum, item) => sum + item.nominal, 0);
+            document.getElementById('dash-total-saldo').innerText = formatRupiah(totalSaldo);
+            document.getElementById('dash-total-masuk').innerText = '+ ' + formatRupiah(totalMasuk);
+            document.getElementById('dash-total-keluar').innerText = '- ' + formatRupiah(totalKeluar);
+        }
+        window.setTxType = function(type) {
+            window.currentTxType = type;
+            document.getElementById('btn-tx-masuk').className = type === 'pemasukan' ? "py-2.5 rounded-xl text-xs font-semibold border bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "py-2.5 rounded-xl text-xs font-semibold border bg-transparent border-slate-800 text-slate-400";
+            document.getElementById('btn-tx-keluar').className = type === 'pengeluaran' ? "py-2.5 rounded-xl text-xs font-semibold border bg-rose-500/10 border-rose-500/30 text-rose-400" : "py-2.5 rounded-xl text-xs font-semibold border bg-transparent border-slate-800 text-slate-400";
+        }
+        function updateDompetDropdown() {
+            const dropdown = document.getElementById('tx-dompet'); dropdown.innerHTML = '';
+            window.dataDompet.forEach(d => {
+                let opt = document.createElement('option'); opt.value = d.id; opt.innerText = `${d.nama} (${formatRupiah(d.saldo)})`; dropdown.appendChild(opt);
+            });
+        }
+        
+        window.simpanTransaksi = async function() {
+            const dompetId = document.getElementById('tx-dompet').value;
+            const nominal = parseInt(document.getElementById('tx-nominal').value);
+            const keterangan = document.getElementById('tx-keterangan').value.trim();
+            const btn = event.target;
+    
+            if(!dompetId || isNaN(nominal) || nominal <= 0 || !keterangan) {
+                return alert('Lengkapi form!');
+            }
+
+            btn.disabled = true; // mencegah klik ganda
+            showLoading("Menyimpan transaksi...");
+
+            try {
+                const userRef = doc(db, "users_fintech_hybrid", currentUserUid);
+                const transRef = collection(db, "users_fintech_hybrid", currentUserUid, "transaksi");
+                
+                await runTransaction(db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) throw "User tidak ditemukan";
+                    
+                    const dompetData = userDoc.data().dompet;
+                    const targetIndex = dompetData.findIndex(d => d.id === dompetId);
+                    
+                    if (targetIndex === -1) throw "Dompet tidak ditemukan";
+
+                    // Update Saldo
+                    const newSaldo = window.currentTxType === 'pemasukan' 
+                                    ? dompetData[targetIndex].saldo + nominal 
+                                    : dompetData[targetIndex].saldo - nominal;
+                    
+                    dompetData[targetIndex].saldo = newSaldo;
+                    // Operasi Atomic
+                    transaction.update(userRef, { dompet: dompetData });
+                    transaction.set(doc(transRef), {
+                        tanggal: new Date().toLocaleDateString('id-ID'),
+                        type: window.currentTxType,
+                        dompetId: dompetId,
+                        nominal: nominal,
+                        keterangan: keterangan,
+                        timestamp: serverTimestamp()
+                    });
+                });
+
+                document.getElementById('tx-nominal').value = '';
+                document.getElementById('tx-keterangan').value = '';
+                alert("Transaksi berhasil dicatat!");
+            } catch (e) {
+                console.error(e);
+                alert("Gagal menyimpan transaksi: " + e);
+            } finally {
+                btn.disabled = false;
+                hideLoading();
+            }
+        }
+        window.toggleDompetModal = function(show) { document.getElementById('dompet-modal').style.display = show ? 'flex' : 'none'; }
+        window.simpanDompetBaru = function() {
+            const nama = document.getElementById('modal-nama-dompet').value.trim();
+            const saldoInput = document.getElementById('modal-saldo-dompet').value;
+
+            if(!nama || saldoInput === "") {
+                alert('Mohon isi nama dompet dan saldo awal.');
+                return;
+            }
+                
+            window.dataDompet.push({
+                id: 'd-' + Date.now(),
+                nama: nama,
+                saldo: parseInt(saldoInput)
+            });
+                
+            showLoading("Menyimpan dompet.....");
+            uploadStateKeCloud();
+            hideLoading();
+
+            document.getElementById('modal-nama-dompet').value = '';
+            document.getElementById('modal-saldo-dompet').value = '';
+            window.toggleDompetModal(false);
+
+            refreshUI();
+        }
+        function renderDompetCards() {
+            const container = document.getElementById('daftar-dompet'); container.innerHTML = '';
+            window.dataDompet.forEach(d => {
+                let card = document.createElement('div'); card.className = "glass rounded-2xl p-5 relative overflow-hidden";
+                card.innerHTML = `<p class="text-xs text-slate-400 font-medium mb-1">${d.nama}</p><p class="text-xl font-bold text-white">${formatRupiah(d.saldo)}</p>`;
+                container.appendChild(card);
+            });
+        }
+        function renderTransaksiTable() {
+            const body = document.getElementById('tabel-transaksi-body');
+            body.innerHTML = '';
+
+            if(window.dataTransaksi.length === 0) {
+                document.getElementById('transaksi-empty-state').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('transaksi-empty-state').classList.add('hidden');
+
+            window.dataTransaksi.forEach(t => {
+                let tr = document.createElement('tr');
+                tr.className = "border-b border-slate-900";
+                tr.innerHTML = `
+                    <td class="p-4 text-slate-400">${t.tanggal || '-'}</td>
+                    <td class="p-4 font-medium text-slate-200">${t.keterangan}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 bg-slate-800 rounded text-slate-400 text-[10px]">${t.dompetId}</span></td>
+                    <td class="p-4 text-right ${t.type === 'pemasukan' ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${t.type === 'pemasukan' ? '+ ' : '- '}${formatRupiah(t.nominal)}
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+        window.initCharts = function() {
+            const canvasCore = document.getElementById('financialChart');
+            const canvasTrans = document.getElementById('transactionPageChart');
+
+            const sliceTx = window.dataTransaksi.slice(0, 7).reverse();
+            let labelDates = sliceTx.map(t => t.keterangan.length > 10 ? t.keterangan.substring(0,10)+'..' : t.keterangan);
+            let datasetValues = sliceTx.map(t => t.type === 'pemasukan' ? t.nominal : -t.nominal);
+            
+            if(labelDates.length === 0) { labelDates = ['Belum ada data']; datasetValues = [0]; }
+            const opt = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                }
+            };
+
+            if (canvasCore) {
+                if (window.coreChart) window.coreChart.destroy();
+                window.coreChart = new Chart(canvasCore.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labelDates,
+                        datasets: [{
+                            data: datasetValues,
+                            backgroundColor: datasetValues.map(v => v >= 0 ? 'rgba(52, 211, 153, 0.4)' : 'rgba(251, 113, 133, 0.4)'),
+                            borderColor: datasetValues.map(v => v >= 0 ? '#34d399' : '#fb7185'),
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: opt
+                });
+            }
+            // 3. Render Transaction Chart (Halaman Transaksi)
+            if (canvasTrans) {
+                if (window.transPageChart) window.transPageChart.destroy();
+                window.transPageChart = new Chart(canvasTrans.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labelDates,
+                        datasets: [{
+                            data: datasetValues,
+                            backgroundColor: datasetValues.map(v => v >= 0 ? 'rgba(139, 92, 246, 0.4)' : 'rgba(244, 63, 94, 0.4)'),
+                            borderColor: datasetValues.map(v => v >= 0 ? '#8b5cf6' : '#f43f5e'),
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: opt
+                });
+            }
+        
+        
+            if(document.getElementById('financialChart')) {
+                if(window.coreChart) window.coreChart.destroy();
+                window.coreChart = new Chart(document.getElementById('financialChart').getContext('2d'), { type: 'bar', data: { labels: labelDates, datasets: [{ data: datasetValues, backgroundColor: datasetValues.map(v => v >= 0 ? 'rgba(52, 211, 153, 0.4)' : 'rgba(251, 113, 133, 0.4)'), borderColor: datasetValues.map(v => v >= 0 ? '#34d399' : '#fb7185'), borderWidth: 1.5, borderRadius: 6 }] }, options: opt });
+            }
+            if(document.getElementById('transactionPageChart')) {
+                if(window.transPageChart) window.transPageChart.destroy();
+                window.transPageChart = new Chart(document.getElementById('transactionPageChart').getContext('2d'), { type: 'bar', data: { labels: labelDates, datasets: [{ data: datasetValues, backgroundColor: datasetValues.map(v => v >= 0 ? 'rgba(139, 92, 246, 0.4)' : 'rgba(244, 63, 94, 0.4)'), borderColor: datasetValues.map(v => v >= 0 ? '#8b5cf6' : '#f43f5e'), borderWidth: 1.5, borderRadius: 6 }] }, options: opt });
+            }
+        };
+        function showLoading(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('loading-cloud').classList.remove('hidden'); }
+        function hideLoading() { document.getElementById('loading-cloud').classList.add('hidden'); }
+    </script>
+</body>
+</html>
